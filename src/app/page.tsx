@@ -410,11 +410,11 @@ export default function Home() {
         {/* ════════════════ CHECK-IN TAB ════════════════ */}
         {activeTab === "checkin" && (
           <motion.main key="checkin" variants={containerV} initial="hidden" animate="show" exit={{ opacity: 0, y: -8 }}
-            className="relative z-10 max-w-5xl mx-auto w-full px-4 py-5 grid grid-cols-1 lg:grid-cols-12 gap-5">
+            className="relative z-10 max-w-2xl mx-auto w-full px-4 py-5 flex flex-col gap-5">
 
             {/* Stats row */}
             {logs.length > 0 && (
-              <motion.div variants={itemV} className="col-span-12 grid grid-cols-3 gap-3">
+              <motion.div variants={itemV} className="grid grid-cols-3 gap-3">
                 {[
                   { Icon: Flame, label: "Streak", value: `${streak}d`, cls: "text-orange-500", bg: "bg-orange-50 border-orange-100" },
                   { Icon: TrendingUp, label: "Avg Mood (7d)", value: ltm.avgMood > 0 ? `${ltm.avgMood}/5` : "--", cls: "text-teal-600", bg: "bg-teal-50 border-teal-100" },
@@ -431,113 +431,128 @@ export default function Home() {
               </motion.div>
             )}
 
-            {/* ── Left column ── */}
-            <div className="col-span-1 lg:col-span-6 flex flex-col gap-4">
-
-              {/* Mood picker */}
-              <motion.section variants={itemV}
-                className="bg-white/80 backdrop-blur-md rounded-3xl p-5 shadow-sm border border-white">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">How are you feeling?</p>
-                <div className="flex justify-between items-end mb-2 px-1">
-                  {[1,2,3,4,5].map((level, i) => (
-                    <div key={level} className="flex flex-col items-center gap-1.5">
-                      <motion.span
-                        animate={{ scale: mood === level ? 1.5 : 1, opacity: mood === level ? 1 : 0.32, y: mood === level ? -6 : 0 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 18 }}
-                        className="text-3xl cursor-pointer"
-                        onClick={() => setMood(level)}
-                      >{MOOD_EMOJIS[i]}</motion.span>
-                      <motion.div
-                        animate={{ opacity: mood === level ? 1 : 0, width: mood === level ? 20 : 0 }}
-                        className="h-1 rounded-full"
-                        style={{ backgroundColor: MOOD_COLORS[level - 1] }}
-                      />
-                    </div>
-                  ))}
-                </div>
-                <p className="text-center text-sm font-semibold mt-2" style={{ color: MOOD_COLORS[mood - 1] }}>
-                  {MOOD_LABELS[mood - 1]}
-                </p>
-
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-5 mb-3">What's contributing?</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {AVAILABLE_TAGS.map((tag) => (
-                    <motion.button key={tag} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                      onClick={() => toggleTag(tag)}
-                      className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all ${
-                        tags.includes(tag) ? "bg-teal-600 text-white shadow-sm" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                      }`}>
-                      {tag}
-                    </motion.button>
-                  ))}
-                </div>
-              </motion.section>
-
-              {/* Journal */}
-              <motion.section variants={itemV}
-                className="bg-white/80 backdrop-blur-md rounded-3xl p-5 shadow-sm border border-white flex flex-col">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                  <PenLine size={12} /> Journal
-                </p>
-                <textarea
-                  className="w-full min-h-[120px] p-4 bg-slate-50/60 rounded-2xl border border-slate-200 focus:border-teal-400 focus:ring-4 focus:ring-teal-100 transition-all resize-none text-sm text-slate-700 placeholder:text-slate-400 outline-none"
-                  placeholder="What's on your mind? This space is just for you..."
-                  value={journal}
-                  onChange={(e) => setJournal(e.target.value)}
-                  maxLength={2000}
-                />
-                {rateLimitMsg && (
-                  <p className="text-xs text-amber-700 mt-2 flex items-center gap-1.5">
-                    <AlertTriangle size={12} /> {rateLimitMsg}
+            {!aiResponse ? (
+              /* Check-In Inputs Stage */
+              <div className="flex flex-col gap-5">
+                {/* Mood picker */}
+                <motion.section variants={itemV}
+                  className="bg-white/80 backdrop-blur-md rounded-3xl p-5 shadow-sm border border-white">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">How are you feeling?</p>
+                  <div className="flex justify-between items-end mb-2 px-1">
+                    {[1,2,3,4,5].map((level, i) => (
+                      <div key={level} className="flex flex-col items-center gap-1.5">
+                        <motion.span
+                          animate={{ scale: mood === level ? 1.5 : 1, opacity: mood === level ? 1 : 0.32, y: mood === level ? -6 : 0 }}
+                          transition={{ type: "spring", stiffness: 400, damping: 18 }}
+                          className="text-3xl cursor-pointer"
+                          onClick={() => setMood(level)}
+                        >{MOOD_EMOJIS[i]}</motion.span>
+                        <motion.div
+                          animate={{ opacity: mood === level ? 1 : 0, width: mood === level ? 20 : 0 }}
+                          className="h-1 rounded-full"
+                          style={{ backgroundColor: MOOD_COLORS[level - 1] }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-center text-sm font-semibold mt-2" style={{ color: MOOD_COLORS[mood - 1] }}>
+                    {MOOD_LABELS[mood - 1]}
                   </p>
-                )}
-                <div className="flex items-center justify-between mt-3">
-                  <span className="text-xs text-slate-400">{journal.length}/2000</span>
-                  <motion.button
-                    whileHover={{ scale: !journal.trim() || isSubmitting ? 1 : 1.02 }}
-                    whileTap={{ scale: !journal.trim() || isSubmitting ? 1 : 0.97 }}
-                    onClick={handleSubmit}
-                    disabled={!journal.trim() || isSubmitting}
-                    className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-semibold text-xs py-2.5 px-5 rounded-xl flex items-center gap-1.5 shadow-md shadow-teal-200/50 disabled:opacity-50 disabled:cursor-not-allowed">
-                    {isSubmitting
-                      ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}><Sparkles size={14} /></motion.div>
-                      : <Sparkles size={14} />}
-                    {isSubmitting ? "Analyzing..." : "Get Support"}
-                  </motion.button>
-                </div>
-              </motion.section>
 
-              {/* Breathing widget */}
-              <motion.section variants={itemV}
-                className="bg-white/70 backdrop-blur-md rounded-3xl p-4 shadow-sm border border-white flex items-center gap-4 relative overflow-hidden">
-                <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
-                  <motion.div animate={{ scale: [1, 1.4, 1], opacity: [0.2, 0.5, 0.2] }}
-                    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute inset-0 rounded-full bg-teal-300 blur-xl" />
-                  <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                    className="relative z-10 w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-teal-600">
-                    <Wind size={18} />
-                  </motion.div>
-                </div>
-                <div>
-                  <p className="font-semibold text-slate-700 text-sm">Box Breathing</p>
-                  <p className="text-xs text-slate-500 leading-snug mt-0.5">Inhale 4s · Hold 4s · Exhale 4s · Hold 4s</p>
-                  <button onClick={() => setActiveMeditation("box")}
-                    className="text-xs text-teal-600 font-semibold mt-1.5 hover:underline">Start guided session →</button>
-                </div>
-              </motion.section>
-            </div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-5 mb-3">What's contributing?</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {AVAILABLE_TAGS.map((tag) => (
+                      <motion.button key={tag} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                        onClick={() => toggleTag(tag)}
+                        className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all ${
+                          tags.includes(tag) ? "bg-teal-600 text-white shadow-sm" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                        }`}>
+                        {tag}
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.section>
 
-            {/* ── Right column: AI Response ── */}
-            <div className="col-span-1 lg:col-span-6 flex flex-col gap-4">
-              <AnimatePresence mode="wait">
-                {aiResponse ? (
+                {/* Journal */}
+                <motion.section variants={itemV}
+                  className="bg-white/80 backdrop-blur-md rounded-3xl p-5 shadow-sm border border-white flex flex-col">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <PenLine size={12} /> Journal
+                  </p>
+                  <textarea
+                    className="w-full min-h-[120px] p-4 bg-slate-50/60 rounded-2xl border border-slate-200 focus:border-teal-400 focus:ring-4 focus:ring-teal-100 transition-all resize-none text-sm text-slate-700 placeholder:text-slate-400 outline-none"
+                    placeholder="What's on your mind? This space is just for you..."
+                    value={journal}
+                    onChange={(e) => setJournal(e.target.value)}
+                    maxLength={2000}
+                  />
+                  {rateLimitMsg && (
+                    <p className="text-xs text-amber-700 mt-2 flex items-center gap-1.5">
+                      <AlertTriangle size={12} /> {rateLimitMsg}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between mt-3">
+                    <span className="text-xs text-slate-400">{journal.length}/2000</span>
+                    <motion.button
+                      whileHover={{ scale: !journal.trim() || isSubmitting ? 1 : 1.02 }}
+                      whileTap={{ scale: !journal.trim() || isSubmitting ? 1 : 0.97 }}
+                      onClick={handleSubmit}
+                      disabled={!journal.trim() || isSubmitting}
+                      className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-semibold text-xs py-2.5 px-5 rounded-xl flex items-center gap-1.5 shadow-md shadow-teal-200/50 disabled:opacity-50 disabled:cursor-not-allowed">
+                      {isSubmitting
+                        ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}><Sparkles size={14} /></motion.div>
+                        : <Sparkles size={14} />}
+                      {isSubmitting ? "Analyzing..." : "Get Support"}
+                    </motion.button>
+                  </div>
+                </motion.section>
+
+                {/* Breathing widget */}
+                <motion.section variants={itemV}
+                  className="bg-white/70 backdrop-blur-md rounded-3xl p-4 shadow-sm border border-white flex items-center gap-4 relative overflow-hidden">
+                  <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
+                    <motion.div animate={{ scale: [1, 1.4, 1], opacity: [0.2, 0.5, 0.2] }}
+                      transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute inset-0 rounded-full bg-teal-300 blur-xl" />
+                    <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                      className="relative z-10 w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-teal-600">
+                      <Wind size={18} />
+                    </motion.div>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-700 text-sm">Box Breathing</p>
+                    <p className="text-xs text-slate-500 leading-snug mt-0.5">Inhale 4s · Hold 4s · Exhale 4s · Hold 4s</p>
+                    <button onClick={() => setActiveMeditation("box")}
+                      className="text-xs text-teal-600 font-semibold mt-1.5 hover:underline">Start guided session →</button>
+                  </div>
+                </motion.section>
+              </div>
+            ) : (
+              /* AI Response & Support Stage */
+              <div className="flex flex-col gap-5">
+                {/* Compact check-in header */}
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                  className="bg-white/90 backdrop-blur-md rounded-2xl p-4 border border-white shadow-sm flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{MOOD_EMOJIS[mood - 1]}</span>
+                    <div>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Logged check-in</p>
+                      <p className="text-sm font-semibold text-slate-700">Mood: {MOOD_LABELS[mood - 1]}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setAiResponse(null)}
+                    className="text-xs font-bold px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all">
+                    New Check-In
+                  </button>
+                </motion.div>
+
+                <AnimatePresence mode="wait">
                   <motion.div key="response"
-                    initial={{ opacity: 0, x: 16, scale: 0.97 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ type: "spring", stiffness: 280, damping: 26 }}
-                    className="flex flex-col gap-4"
+                    className="flex flex-col gap-5"
                   >
                     {/* Reflection */}
                     <div className="bg-white/90 backdrop-blur-xl rounded-3xl p-5 shadow-md border border-white relative overflow-hidden">
@@ -760,17 +775,15 @@ export default function Home() {
                       </div>
                     </motion.button>
                   </motion.div>
-                ) : (
-                  <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="bg-white/40 backdrop-blur-sm rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 min-h-[280px]">
-                    <Sparkles size={36} className="mb-3 opacity-30" />
-                    <p className="text-sm text-center max-w-[200px] leading-relaxed">
-                      Write in your journal and tap <strong>Get Support</strong> for personalized AI guidance.
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                </AnimatePresence>
+                {/* Reset button at the bottom of the feed */}
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={() => setAiResponse(null)}
+                  className="w-full py-4 bg-slate-200 hover:bg-slate-350 text-slate-700 font-semibold text-xs rounded-2xl transition-all shadow-sm">
+                  Start Another Check-In
+                </motion.button>
+              </div>
+            )}
           </motion.main>
         )}
 
