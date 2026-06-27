@@ -65,13 +65,13 @@ Analyze the journal entry carefully. Use the memory context to make your respons
       "type": "aroma",
       "icon": "wind",
       "title": "3-5 word title",
-      "description": "Specific aromatherapy guidance. E.g., 'Inhale peppermint oil from your wrist — shown to boost alertness and reduce mental fatigue. Available at any medical store.'"
+      "description": "Specific calming or alerting aroma using easily available Indian household items. E.g., 'Twist a fresh lemon or orange peel and inhale the citrus oils for an instant focus boost', 'Inhale steam from boiling water infused with mint (pudina) leaves or a pinch of ajwain to release head tension', 'Crush a green cardamom (elaichi) pod and smell the seeds to calm exam anxiety'."
     },
     {
       "type": "food",
       "icon": "coffee",
       "title": "3-5 word title",
-      "description": "Specific mood-boosting food or drink. Be culturally relevant. E.g., 'Warm haldi doodh (turmeric milk) before sleep reduces cortisol and inflammation', 'A handful of walnuts — rich in omega-3s that directly support brain neurotransmitters'."
+      "description": "Specific calming or focus-boosting food/drink using ingredients readily available in any Indian kitchen. E.g., 'A cup of warm ginger-tulsi water with a spoonful of honey', 'Warm haldi doodh (turmeric milk) before bed to lower cortisol', 'A cup of fresh curd (dahi) with a pinch of sugar to cool the stomach', 'A glass of salted buttermilk (chaas) with roasted cumin (jeera) to hydrate and calm your nerves'."
     },
     {
       "type": "reading",
