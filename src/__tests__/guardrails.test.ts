@@ -150,7 +150,9 @@ describe("validateAIResponse", () => {
   });
 
   test("rejects response with missing reflection", () => {
-    const { reflection, ...noReflection } = validResponse;
+    const noReflection = { ...validResponse };
+    // @ts-expect-error - testing invalid response schema without reflection
+    delete noReflection.reflection;
     expect(validateAIResponse(noReflection)).toBe(false);
   });
 
@@ -167,7 +169,9 @@ describe("validateAIResponse", () => {
   });
 
   test("rejects response with missing motivation", () => {
-    const { motivation, ...noMotivation } = validResponse;
+    const noMotivation = { ...validResponse };
+    // @ts-expect-error - testing invalid response schema without motivation
+    delete noMotivation.motivation;
     expect(validateAIResponse(noMotivation)).toBe(false);
   });
 });

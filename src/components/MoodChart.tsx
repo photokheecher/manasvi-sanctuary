@@ -13,7 +13,19 @@ import type { LogEntry } from "@/types";
 const MOOD_EMOJIS = ["😫", "😟", "😐", "🙂", "😌"];
 const MOOD_LABELS = ["Overwhelmed", "Stressed", "Neutral", "Good", "Calm"];
 
-function CustomTooltip({ active, payload }: any) {
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    payload: {
+      mood: number;
+      fullDate: string;
+      emotions?: string[];
+      tags?: string[];
+    };
+  }>;
+}
+
+function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
@@ -21,20 +33,28 @@ function CustomTooltip({ active, payload }: any) {
       <p className="text-2xl mb-1">{MOOD_EMOJIS[d.mood - 1]}</p>
       <p className="text-sm font-bold text-slate-800">{MOOD_LABELS[d.mood - 1]}</p>
       <p className="text-xs text-slate-500 mt-0.5">{d.fullDate}</p>
-      {d.emotions?.length > 0 && (
+      {d.emotions && d.emotions.length > 0 && (
         <p className="text-xs text-teal-600 mt-1.5 font-medium">
           {d.emotions.slice(0, 2).join(" · ")}
         </p>
       )}
-      {d.tags?.length > 0 && (
+      {d.tags && d.tags.length > 0 && (
         <p className="text-xs text-slate-400 mt-0.5">{d.tags.slice(0, 2).join(", ")}</p>
       )}
     </div>
   );
 }
 
-function CustomDot({ cx, cy, payload }: any) {
-  if (!cx || !cy) return null;
+interface CustomDotProps {
+  cx?: number;
+  cy?: number;
+  payload?: {
+    mood: number;
+  };
+}
+
+function CustomDot({ cx, cy, payload }: CustomDotProps) {
+  if (!cx || !cy || !payload) return null;
   return (
     <g>
       <circle cx={cx} cy={cy} r={5} fill="#0d9488" stroke="white" strokeWidth={2} />

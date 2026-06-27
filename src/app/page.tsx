@@ -1,12 +1,12 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import {
   User, PenLine, Sparkles, Wind, BarChart2, BookOpen,
   Brain, Coffee, Music, Quote, Flame, TrendingUp, Clock,
   ChevronDown, AlertTriangle, Phone, HeartPulse, Leaf,
-  CheckCircle, Play, X
+  Play
 } from "lucide-react";
 
 import { detectCrisis, sanitizeInput, checkRateLimit } from "@/lib/guardrails";
@@ -14,7 +14,7 @@ import { buildLTM } from "@/lib/memory";
 import MeditationSession from "@/components/MeditationSession";
 import { SESSIONS as MEDITATION_SESSIONS, getRecommendedSession, type SessionType } from "@/lib/sessions";
 import EmotionCompass from "@/components/EmotionCompass";
-import type { LogEntry, AIResponse, Strategy } from "@/types";
+import type { LogEntry, AIResponse, Strategy, UserProfile } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import AuthScreen from "@/components/AuthScreen";
 import { LogOut } from "lucide-react";
@@ -36,7 +36,7 @@ const MOOD_EMOJIS = ["😫", "😟", "😐", "🙂", "😌"];
 const MOOD_LABELS = ["Overwhelmed", "Stressed", "Neutral", "Good", "Calm"];
 const MOOD_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6"];
 
-const ICON_MAP: Record<string, any> = {
+const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   brain: Brain, music: Music, wind: Wind, coffee: Coffee, book: BookOpen, leaf: Leaf,
 };
 const STRATEGY_STYLE: Record<string, { card: string; icon: string }> = {
@@ -81,7 +81,7 @@ function CrisisScreen({ onDismiss }: { onDismiss: () => void }) {
         </div>
         <h2 className="text-2xl font-bold text-slate-800 mb-3">You Matter</h2>
         <p className="text-slate-600 leading-relaxed mb-6">
-          It sounds like you're carrying something really heavy right now. You don't have to face this alone.
+          It sounds like you&apos;re carrying something really heavy right now. You don&apos;t have to face this alone.
           Reaching out takes courage — and you have it.
         </p>
         <div className="space-y-3 mb-6">
@@ -105,7 +105,7 @@ function CrisisScreen({ onDismiss }: { onDismiss: () => void }) {
         </div>
         <button onClick={onDismiss}
           className="w-full py-3 rounded-2xl bg-slate-100 text-slate-600 font-medium hover:bg-slate-200 transition-colors">
-          I'm okay — go back
+          I&apos;m okay — go back
         </button>
       </motion.div>
     </motion.div>
@@ -159,8 +159,8 @@ function HistoryCard({ entry, index }: { entry: LogEntry; index: number }) {
               </p>
               {entry.aiResponse.emotions?.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
-                  {entry.aiResponse.emotions.map((e, i) => (
-                    <span key={i} className="text-xs px-2.5 py-1 rounded-lg bg-orange-50 text-orange-700 border border-orange-100 font-medium">{e}</span>
+                  {entry.aiResponse.emotions.map((e) => (
+                    <span key={e} className="text-xs px-2.5 py-1 rounded-lg bg-orange-50 text-orange-700 border border-orange-100 font-medium">{e}</span>
                   ))}
                 </div>
               )}
@@ -170,7 +170,7 @@ function HistoryCard({ entry, index }: { entry: LogEntry; index: number }) {
                     const Icon = ICON_MAP[s.icon] || BookOpen;
                     const style = STRATEGY_STYLE[s.type] || { card: "bg-slate-50 border-slate-100 text-slate-700", icon: "bg-slate-100 text-slate-600" };
                     return (
-                      <div key={i} className={`flex items-start gap-2.5 p-2.5 rounded-xl border ${style.card}`}>
+                      <div key={`${s.title}-${i}`} className={`flex items-start gap-2.5 p-2.5 rounded-xl border ${style.card}`}>
                         <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${style.icon}`}>
                           <Icon size={14} />
                         </div>
@@ -186,7 +186,7 @@ function HistoryCard({ entry, index }: { entry: LogEntry; index: number }) {
               {entry.aiResponse.motivation && (
                 <div className="p-3 bg-teal-50 rounded-xl border border-teal-100 relative">
                   <Quote size={14} className="absolute top-2 right-2 text-teal-200" />
-                  <p className="text-xs text-teal-800 italic leading-relaxed pr-4">"{entry.aiResponse.motivation}"</p>
+                  <p className="text-xs text-teal-800 italic leading-relaxed pr-4">&ldquo;{entry.aiResponse.motivation}&rdquo;</p>
                 </div>
               )}
             </div>
@@ -200,31 +200,30 @@ function HistoryCard({ entry, index }: { entry: LogEntry; index: number }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 type Tab = "checkin" | "meditate" | "insights" | "journey";
 
-export default function Home() {
-  const { currentUser, logout, isLoading } = useAuth();
+interface WeeklyInsight {
+  narrative: string;
+  strength?: string;
+  nextWeekFocus?: string;
+}
 
+function DashboardContent({ currentUser, logout }: { currentUser: UserProfile; logout: () => void }) {
   // ── Core state
   const [mood, setMood] = useState(3);
   const [tags, setTags] = useState<string[]>([]);
   const [journal, setJournal] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [aiResponse, setAiResponse] = useState<AIResponse | null>(null);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [logs, setLogs] = useState<LogEntry[]>(() => {
+    if (typeof window === "undefined") return [];
+    const stored = localStorage.getItem(`manasvi_logs_${currentUser.id}`);
+    return stored ? JSON.parse(stored) : [];
+  });
   const [activeTab, setActiveTab] = useState<Tab>("checkin");
   const [activeMeditation, setActiveMeditation] = useState<SessionType | null>(null);
   const [showCrisis, setShowCrisis] = useState(false);
   const [rateLimitMsg, setRateLimitMsg] = useState("");
-  const [weeklyInsight, setWeeklyInsight] = useState<any>(null);
+  const [weeklyInsight, setWeeklyInsight] = useState<WeeklyInsight | null>(null);
   const [loadingInsight, setLoadingInsight] = useState(false);
-
-  // Load from localStorage
-  useEffect(() => {
-    if (currentUser) {
-      const stored = localStorage.getItem(`manasvi_logs_${currentUser.id}`);
-      if (stored) setLogs(JSON.parse(stored));
-      else setLogs([]);
-    }
-  }, [currentUser]);
 
   // ── Derived data
   const streak = useMemo(() => calcStreak(logs), [logs]);
@@ -321,19 +320,6 @@ export default function Home() {
     { id: "insights" as Tab, label: "Insights",   Icon: BarChart2 },
     { id: "journey" as Tab,  label: "Journey",    Icon: BookOpen  },
   ];
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f0f4f8]">
-        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-          className="w-10 h-10 border-4 border-teal-500 border-t-transparent rounded-full" />
-      </div>
-    );
-  }
-
-  if (!currentUser) {
-    return <AuthScreen />;
-  }
 
   return (
     <div className="min-h-screen bg-[#f0f4f8] text-[#1e293b] font-sans overflow-x-hidden relative selection:bg-teal-200">
@@ -459,7 +445,7 @@ export default function Home() {
                     {MOOD_LABELS[mood - 1]}
                   </p>
 
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-5 mb-3">What's contributing?</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-5 mb-3">What&apos;s contributing?</p>
                   <div className="flex flex-wrap gap-1.5">
                     {AVAILABLE_TAGS.map((tag) => (
                       <motion.button key={tag} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
@@ -571,7 +557,7 @@ export default function Home() {
                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Feelings Identified</p>
                           <div className="flex flex-wrap gap-1.5">
                             {aiResponse.emotions.map((e, i) => (
-                              <motion.span key={i} initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: i * 0.07 }}
+                              <motion.span key={e} initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: i * 0.07 }}
                                 className="px-2.5 py-1 bg-orange-50 text-orange-700 rounded-lg text-xs font-semibold border border-orange-100">
                                 {e}
                               </motion.span>
@@ -590,7 +576,7 @@ export default function Home() {
                             const Icon = ICON_MAP[s.icon] || BookOpen;
                             const style = STRATEGY_STYLE[s.type] || { card: "bg-slate-50 border-slate-100 text-slate-700", icon: "bg-slate-100 text-slate-600" };
                             return (
-                              <motion.div key={i}
+                              <motion.div key={`${s.title}-${i}`}
                                 initial={{ x: 10, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: i * 0.09 }}
                                 whileHover={{ x: 3 }}
                                 className={`flex items-start gap-3 p-3 rounded-2xl border ${style.card} transition-transform`}
@@ -639,7 +625,7 @@ export default function Home() {
                         {aiResponse.cognitiveDeclutter.unlocked && (
                           <div className="mt-3 bg-emerald-50 border border-emerald-100 rounded-2xl p-3 text-xs text-emerald-800 leading-relaxed">
                             <p className="font-bold mb-0.5">🧠 Peak Focus Window Open</p>
-                            Your working memory is optimized right now. This is your peak window to tackle that tough physics, math, or analytical section you've been putting off!
+                            Your working memory is optimized right now. This is your peak window to tackle that tough physics, math, or analytical section you&apos;ve been putting off!
                             {aiResponse.cognitiveDeclutter.insightWords?.length > 0 && (
                               <div className="mt-1.5 flex flex-wrap gap-1 items-center">
                                 <span className="text-[10px] text-slate-400 font-semibold mr-1">Insight transitions:</span>
@@ -665,10 +651,10 @@ export default function Home() {
                             </span>
                           </div>
                           <div className="p-3 bg-rose-50/50 rounded-2xl border border-rose-100/50 text-xs text-slate-600 mb-3 italic">
-                            "{journal || "Your self-critical thoughts"}"
+                            &ldquo;{journal || "Your self-critical thoughts"}&rdquo;
                           </div>
                           <div className="p-3.5 bg-gradient-to-r from-teal-55 to-emerald-55 rounded-2xl border border-teal-100 text-xs text-teal-900 leading-relaxed font-medium">
-                            <p className="font-bold text-teal-800 mb-1">💡 Compassionate Reframe (Neff's 3 Pillars)</p>
+                            <p className="font-bold text-teal-800 mb-1">💡 Compassionate Reframe (Neff&apos;s 3 Pillars)</p>
                             {aiResponse.selfDoubtReframer.compassionateReframe}
                           </div>
                         </div>
@@ -704,7 +690,7 @@ export default function Home() {
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">If-Then Action Blueprint</p>
                         <div className="space-y-2">
                           {aiResponse.ifThenBlueprint.triggers.map((trigger, idx) => (
-                            <div key={idx} className="flex items-start gap-2.5 p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs">
+                            <div key={`${trigger.condition}-${idx}`} className="flex items-start gap-2.5 p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs">
                               <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center shrink-0 text-[10px]">
                                 {idx + 1}
                               </span>
@@ -732,7 +718,7 @@ export default function Home() {
                         </div>
                         <ol className="space-y-1.5">
                           {aiResponse.mindfulness.steps.map((step, i) => (
-                            <li key={i} className="flex items-start gap-2 text-xs text-violet-800">
+                            <li key={`${step}-${i}`} className="flex items-start gap-2 text-xs text-violet-800">
                               <span className="w-5 h-5 rounded-full bg-violet-200 text-violet-700 font-bold flex items-center justify-center shrink-0 text-[10px]">{i+1}</span>
                               {step}
                             </li>
@@ -745,7 +731,7 @@ export default function Home() {
                     {aiResponse.motivation && (
                       <div className="p-4 bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl border border-teal-100 relative">
                         <Quote size={18} className="absolute top-3 right-3 text-teal-200/60" />
-                        <p className="text-sm text-teal-800 font-medium italic leading-relaxed pr-5">"{aiResponse.motivation}"</p>
+                        <p className="text-sm text-teal-800 font-medium italic leading-relaxed pr-5">&ldquo;{aiResponse.motivation}&rdquo;</p>
                       </div>
                     )}
                     {aiResponse.weeklyFocus && (
@@ -813,7 +799,7 @@ export default function Home() {
 
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">All Sessions</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {(Object.values(MEDITATION_SESSIONS) as any[]).map((s, i) => (
+              {(Object.values(MEDITATION_SESSIONS) as typeof MEDITATION_SESSIONS[keyof typeof MEDITATION_SESSIONS][]).map((s, i) => (
                 <motion.button key={s.id}
                   initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                   whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
@@ -1025,7 +1011,7 @@ export default function Home() {
                 </div>
                 <div className="space-y-3">
                   {[...logs].reverse().map((entry, i) => (
-                    <HistoryCard key={i} entry={entry} index={i} />
+                    <HistoryCard key={entry.date} entry={entry} index={i} />
                   ))}
                 </div>
               </>
@@ -1036,4 +1022,22 @@ export default function Home() {
       </AnimatePresence>
     </div>
   );
+}
+
+export default function Home() {
+  const { currentUser, logout, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" />
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return <AuthScreen />;
+  }
+
+  return <DashboardContent key={currentUser.id} currentUser={currentUser} logout={logout} />;
 }

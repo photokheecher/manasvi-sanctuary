@@ -4,7 +4,7 @@
  * Pre-populates 3 dummy users (JEE, NEET, UPSC) with mock journal history.
  */
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
 import type { UserProfile, LogEntry } from "@/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -128,17 +128,25 @@ const buildMockLogs = (exam: string): LogEntry[] => {
   ];
 };
 
+interface RegisteredUser {
+  id: string;
+  name: string;
+  email: string;
+  pass: string;
+  exam: string;
+}
+
 // ─── Provider Component ────────────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Initialize state synchronously to avoid cascading renders on client mount
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    if (typeof window === "undefined") return null;
 
-  useEffect(() => {
-    // 1. Check if dummy users exist in localStorage, if not initialize them
+    // Check if dummy users exist in localStorage, if not initialize them
     const existingUsers = localStorage.getItem("manasvi_users");
     if (!existingUsers) {
-      const dummyUsers = [
+      const dummyUsers: RegisteredUser[] = [
         { id: "user_rahul", name: "Rahul Sharma", email: "rahul@manasvi.edu", pass: "rahul123", exam: "JEE" },
         { id: "user_priya", name: "Priya Patel", email: "priya@manasvi.edu", pass: "priya123", exam: "NEET" },
         { id: "user_aarav", name: "Aarav Mehta", email: "aarav@manasvi.edu", pass: "aarav123", exam: "UPSC" },
@@ -152,17 +160,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     }
 
-    // 2. Check if there's a logged-in user session
     const loggedIn = localStorage.getItem("manasvi_current_user");
-    if (loggedIn) {
-      setCurrentUser(JSON.parse(loggedIn));
-    }
-    setIsLoading(false);
-  }, []);
+    return loggedIn ? JSON.parse(loggedIn) : null;
+  });
+
+  const isLoading = false;
 
   const login = (email: string, pass: string): boolean => {
-    const users = JSON.parse(localStorage.getItem("manasvi_users") || "[]");
-    const found = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase() && u.pass === pass);
+    const users: RegisteredUser[] = JSON.parse(localStorage.getItem("manasvi_users") || "[]");
+    const found = users.find((u) => u.email.toLowerCase() === email.toLowerCase() && u.pass === pass);
     if (found) {
       const profile: UserProfile = { id: found.id, name: found.name, email: found.email, exam: found.exam };
       setCurrentUser(profile);
@@ -173,8 +179,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signup = (name: string, email: string, pass: string, exam: string): boolean => {
-    const users = JSON.parse(localStorage.getItem("manasvi_users") || "[]");
-    if (users.some((u: any) => u.email.toLowerCase() === email.toLowerCase())) {
+    const users: RegisteredUser[] = JSON.parse(localStorage.getItem("manasvi_users") || "[]");
+    if (users.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
       return false; // Email already registered
     }
 

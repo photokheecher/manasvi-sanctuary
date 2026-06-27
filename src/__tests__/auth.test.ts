@@ -3,13 +3,19 @@
  * Tests signup, login, session validation, and logs isolation per user.
  */
 
-import { AuthProvider } from "../context/AuthContext";
+interface MockUser {
+  id: string;
+  name: string;
+  email: string;
+  pass: string;
+  exam: string;
+}
 
 // Simple local mock simulator for testing auth behaviors without DOM dependencies
 class LocalAuthSimulator {
-  private users: any[] = [];
-  private currentUser: any | null = null;
-  private logsByUser: Record<string, any[]> = {};
+  private users: MockUser[] = [];
+  private currentUser: Omit<MockUser, "pass"> | null = null;
+  private logsByUser: Record<string, { text: string }[]> = {};
 
   constructor() {
     // Populate dummy users

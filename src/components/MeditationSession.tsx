@@ -9,17 +9,17 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, CheckCircle, Wind, Heart, Focus, Sunrise, ChevronRight, Play, Pause, Volume2, VolumeX } from "lucide-react";
-import { SESSIONS, type SessionType, type SessionDef } from "@/lib/sessions";
+import { SESSIONS, type SessionType } from "@/lib/sessions";
 
 // Re-export so page.tsx can still do: import { SESSIONS } from this file if needed
 export { SESSIONS, type SessionType };
 
 // Icons mapped per session type (client-only)
-const SESSION_ICONS: Record<SessionType, React.FC<{ size?: number; className?: string }>> = {
+const SESSION_ICONS: Record<SessionType, React.ComponentType<{ size?: number; className?: string }>> = {
   breathing_478: Wind,
   box: Wind,
   bodyscan: Sunrise,
-  focus: Focus as any,
+  focus: Focus,
   gratitude: Heart,
 };
 
@@ -51,42 +51,40 @@ interface BreathingPhase {
 }
 
 const BREATHING_478_PHASES: BreathingPhase[] = [
-  { label: "Breathe In", instruction: "Slowly fill your lungs through your nose", seconds: 4, targetScale: 1.55, color: "#2dd4bf" },
-  { label: "Hold", instruction: "Gently hold — don't strain", seconds: 7, targetScale: 1.55, color: "#818cf8" },
-  { label: "Breathe Out", instruction: "Exhale fully through your mouth", seconds: 8, targetScale: 0.8, color: "#67e8f9" },
+  { label: "Inhale", instruction: "Breathe in deeply through your nose", seconds: 4, targetScale: 1.55, color: "#2dd4bf" },
+  { label: "Hold", instruction: "Hold your breath, relaxing your face", seconds: 7, targetScale: 1.55, color: "#818cf8" },
+  { label: "Exhale", instruction: "Sigh out slowly through your mouth", seconds: 8, targetScale: 0.8, color: "#67e8f9" },
 ];
 
 const BOX_PHASES: BreathingPhase[] = [
-  { label: "Breathe In", instruction: "Breathe in slowly through your nose", seconds: 4, targetScale: 1.5, color: "#818cf8" },
-  { label: "Hold", instruction: "Hold at the top", seconds: 4, targetScale: 1.5, color: "#a78bfa" },
-  { label: "Breathe Out", instruction: "Exhale fully and steadily", seconds: 4, targetScale: 0.85, color: "#60a5fa" },
-  { label: "Hold", instruction: "Hold at the bottom", seconds: 4, targetScale: 0.85, color: "#818cf8" },
+  { label: "Inhale", instruction: "Breathe in slowly, filling your chest", seconds: 4, targetScale: 1.5, color: "#818cf8" },
+  { label: "Hold", instruction: "Suspend your breath peacefully", seconds: 4, targetScale: 1.5, color: "#a78bfa" },
+  { label: "Exhale", instruction: "Breath out smoothly and completely", seconds: 4, targetScale: 0.85, color: "#60a5fa" },
+  { label: "Hold", instruction: "Rest in the empty stillness", seconds: 4, targetScale: 0.85, color: "#818cf8" },
 ];
 
 const BODY_SCAN_STEPS = [
-  { at: 0, text: "Find a comfortable position. Gently close your eyes or soften your gaze downward." },
-  { at: 30, text: "Take 3 slow, deep breaths. With each exhale, let your body become heavier." },
-  { at: 60, text: "Bring your attention to your feet. Notice any sensation — warmth, tingling, or simply the feeling of the floor." },
-  { at: 90, text: "Move awareness up to your calves and knees. Notice any tightness. You don't need to fix it — just observe." },
-  { at: 120, text: "Bring attention to your hips and lower back. Let them feel fully supported. Release any bracing." },
-  { at: 150, text: "Notice your stomach. Is it tight with anxiety? With each exhale, let it soften." },
-  { at: 180, text: "Your chest and shoulders — common homes for exam stress. Let them drop with your exhale." },
-  { at: 210, text: "Relax your jaw, your tongue. You don't have to speak or smile for anyone right now." },
-  { at: 240, text: "Finally, your forehead. Let any furrowing completely release. Your whole body is supported." },
-  { at: 270, text: "Take a full breath in... and a long slow exhale. Gently open your eyes when you're ready. Well done." },
+  { at: 0, text: "Close your eyes. Bring your awareness to your feet. Feel the weight resting on the ground." },
+  { at: 30, text: "Move your attention up to your shins, calves, and knees. Release any tightness you feel here." },
+  { at: 90, text: "Focus now on your thighs and hips. Let them soften into your chair with every breath." },
+  { at: 150, text: "Gently notice your lower back, upper back, and stomach. Soften the core of your body." },
+  { at: 210, text: "Bring attention to your shoulders, arms, and hands. Allow your shoulders to drop." },
+  { at: 260, text: "Finally, relax your jaw, your forehead, and the muscles around your eyes. Rest in absolute quiet." },
 ];
 
 const GRATITUDE_PROMPTS = [
-  "What's one thing that went okay today, even if it was tiny?",
-  "Name one person who has supported you, in any way, on this journey.",
-  "What's one quality about yourself that you genuinely appreciate?",
+  "Write down one simple comfort you are grateful for today (e.g., a warm cup of tea, a comfortable chair).",
+  "Write down one person in your preparation journey who helped or supported you recently.",
+  "Write down one small thing you appreciate about your own mind or resilience today."
 ];
 
 const PARTICLE_POSITIONS = [
-  { left: "10%", top: "15%" }, { left: "85%", top: "10%" },
-  { left: "20%", top: "75%" }, { left: "70%", top: "80%" },
-  { left: "50%", top: "5%" },  { left: "90%", top: "55%" },
-  { left: "5%",  top: "45%" }, { left: "60%", top: "60%" },
+  { top: "15%", left: "10%" },
+  { top: "25%", left: "80%" },
+  { top: "70%", left: "15%" },
+  { top: "85%", left: "75%" },
+  { top: "50%", left: "90%" },
+  { top: "40%", left: "5%" },
 ];
 
 // ─── Recommendation Logic ─────────────────────────────────────────────────────
@@ -102,10 +100,9 @@ export function getRecommendedSession(mood: number, emotions: string[]): Session
 
 // ─── Sub-renderers ───────────────────────────────────────────────────────────
 
-function BreathingVisual({ phases, totalCycles, session, isMuted }: {
+function BreathingVisual({ phases, totalCycles, isMuted }: {
   phases: BreathingPhase[];
   totalCycles: number;
-  session: SessionDef;
   isMuted: boolean;
 }) {
   const [phaseIdx, setPhaseIdx] = useState(0);
@@ -125,7 +122,7 @@ function BreathingVisual({ phases, totalCycles, session, isMuted }: {
           setTimeLeft(phases[0].seconds);
           return c + 1;
         });
-        return prev; // stay — handled above
+        return prev;
       }
       setTimeLeft(phases[next].seconds);
       return next;
@@ -138,7 +135,7 @@ function BreathingVisual({ phases, totalCycles, session, isMuted }: {
     } else {
       speak(`${phase.label}. ${phase.instruction}`, isMuted);
     }
-  }, [phaseIdx, cycle, completed, isMuted]);
+  }, [phaseIdx, cycle, completed, isMuted, phase.label, phase.instruction]);
 
   useEffect(() => {
     if (completed) return;
@@ -258,7 +255,7 @@ function BodyScanVisual({ isMuted }: { isMuted: boolean }) {
     } else {
       speak(currentStep.text, isMuted);
     }
-  }, [currentStep.at, completed, isMuted]);
+  }, [currentStep.at, currentStep.text, completed, isMuted]);
 
   return (
     <div className="flex flex-col items-center gap-8 w-full max-w-sm">
@@ -531,11 +528,24 @@ export default function MeditationSession({
         ) : (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             className="flex flex-col items-center gap-6 w-full">
-            {sessionType === "breathing_478" && <BreathingVisual phases={BREATHING_478_PHASES} totalCycles={4} session={session} isMuted={isMuted} />}
-            {sessionType === "box" && <BreathingVisual phases={BOX_PHASES} totalCycles={5} session={session} isMuted={isMuted} />}
-            {sessionType === "bodyscan" && <BodyScanVisual isMuted={isMuted} />}
-            {sessionType === "focus" && <FocusVisual onComplete={() => setFocusComplete(true)} />}
-            {sessionType === "gratitude" && <GratitudeVisual isMuted={isMuted} />}
+            {sessionType === "focus" && focusComplete ? (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                className="text-center space-y-4 max-w-sm">
+                <CheckCircle size={48} className="text-amber-300 mx-auto" />
+                <h3 className="text-2xl font-light text-white">Focus Block Complete!</h3>
+                <p className="text-white/80 text-sm leading-relaxed">
+                  Excellent work. You completed your 25-minute Pomodoro study sprint. Time to take a 5-minute break to refresh your mind.
+                </p>
+              </motion.div>
+            ) : (
+              <>
+                {sessionType === "breathing_478" && <BreathingVisual phases={BREATHING_478_PHASES} totalCycles={4} isMuted={isMuted} />}
+                {sessionType === "box" && <BreathingVisual phases={BOX_PHASES} totalCycles={5} isMuted={isMuted} />}
+                {sessionType === "bodyscan" && <BodyScanVisual isMuted={isMuted} />}
+                {sessionType === "focus" && <FocusVisual onComplete={() => setFocusComplete(true)} />}
+                {sessionType === "gratitude" && <GratitudeVisual isMuted={isMuted} />}
+              </>
+            )}
           </motion.div>
         )}
       </div>

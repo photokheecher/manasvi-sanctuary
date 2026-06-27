@@ -156,7 +156,7 @@ export default function EmotionCompass({ emotions }: { emotions: string[] }) {
   return (
     <div className="space-y-2">
       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">
-        Emotion Compass — What You're Feeling
+        Emotion Compass — What You&apos;re Feeling
       </p>
       {displayEmotions.map((emo) => (
         <div key={emo.name} className={`rounded-2xl border overflow-hidden ${emo.bg} ${emo.border}`}>
@@ -183,7 +183,7 @@ export default function EmotionCompass({ emotions }: { emotions: string[] }) {
               >
                 <div className="px-4 pb-4 space-y-2.5 border-t border-slate-100">
                   <div className="pt-3">
-                    <p className="text-xs font-semibold text-slate-500 mb-1">What's happening</p>
+                    <p className="text-xs font-semibold text-slate-500 mb-1">What&apos;s happening</p>
                     <p className="text-xs text-slate-700 leading-relaxed">{emo.meaning}</p>
                   </div>
                   <div>
