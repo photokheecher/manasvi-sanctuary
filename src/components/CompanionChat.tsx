@@ -24,6 +24,7 @@ export default function CompanionChat({
 
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: "/api/chat",
+    experimental_maxAutomaticRoundtrips: 3,
     body: {
       currentUser,
       logs,
