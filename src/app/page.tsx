@@ -6,12 +6,13 @@ import {
   User, PenLine, Sparkles, Wind, BarChart2, BookOpen,
   Brain, Coffee, Music, Quote, Flame, TrendingUp, Clock,
   ChevronDown, AlertTriangle, Phone, HeartPulse, Leaf,
-  Play
+  Play, MessageCircle
 } from "lucide-react";
 
 import { detectCrisis, sanitizeInput, checkRateLimit } from "@/lib/guardrails";
 import { buildLTM } from "@/lib/memory";
 import MeditationSession from "@/components/MeditationSession";
+import CompanionChat from "@/components/CompanionChat";
 import { SESSIONS as MEDITATION_SESSIONS, getRecommendedSession, type SessionType } from "@/lib/sessions";
 import EmotionCompass from "@/components/EmotionCompass";
 import type { LogEntry, AIResponse, Strategy, UserProfile } from "@/types";
@@ -198,7 +199,7 @@ function HistoryCard({ entry, index }: { entry: LogEntry; index: number }) {
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
-type Tab = "checkin" | "meditate" | "insights" | "journey";
+type Tab = "checkin" | "companion" | "meditate" | "insights" | "journey";
 
 interface WeeklyInsight {
   narrative: string;
@@ -315,8 +316,9 @@ function DashboardContent({ currentUser, logout }: { currentUser: UserProfile; l
   const itemV = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 26 } } } as const;
 
   const TABS = [
-    { id: "checkin" as Tab,  label: "Check In",   Icon: PenLine   },
-    { id: "meditate" as Tab, label: "Meditate",   Icon: Wind      },
+    { id: "checkin" as Tab, label: "Check-in",  Icon: HeartPulse },
+    { id: "companion" as Tab, label: "Companion", Icon: MessageCircle },
+    { id: "meditate" as Tab, label: "Meditate",   Icon: Wind },
     { id: "insights" as Tab, label: "Insights",   Icon: BarChart2 },
     { id: "journey" as Tab,  label: "Journey",    Icon: BookOpen  },
   ];
@@ -770,6 +772,14 @@ function DashboardContent({ currentUser, logout }: { currentUser: UserProfile; l
                 </motion.button>
               </div>
             )}
+          </motion.main>
+        )}
+
+        {/* ════════════════ COMPANION TAB ════════════════ */}
+        {activeTab === "companion" && (
+          <motion.main key="companion" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="relative z-10 max-w-5xl mx-auto w-full px-4 py-5 h-[calc(100vh-100px)]">
+            <CompanionChat currentUser={currentUser} logs={logs} />
           </motion.main>
         )}
 

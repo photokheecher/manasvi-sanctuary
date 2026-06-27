@@ -88,6 +88,7 @@ export default function AuthScreen() {
             <input
               type="password"
               placeholder="Password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:border-teal-400 focus:ring-4 focus:ring-teal-100 outline-none transition-all text-slate-800"

@@ -301,11 +301,19 @@ function BodyScanVisual({ isMuted }: { isMuted: boolean }) {
   );
 }
 
-function FocusVisual({ onComplete }: { onComplete: () => void }) {
+function FocusVisual({ onComplete, isMuted }: { onComplete: () => void; isMuted: boolean }) {
   const [seconds, setSeconds] = useState(25 * 60);
   const [running, setRunning] = useState(true);
   const [completed, setCompleted] = useState(false);
   const totalSeconds = 25 * 60;
+
+  useEffect(() => {
+    if (completed) {
+      speak("Focus block complete. Excellent work. Time to take a five minute break.", isMuted);
+    } else if (seconds === totalSeconds) {
+      speak("Deep focus session starting. Work on one thing. No phone, no tabs.", isMuted);
+    }
+  }, [completed, isMuted]);
 
   useEffect(() => {
     if (!running) return;
@@ -542,7 +550,7 @@ export default function MeditationSession({
                 {sessionType === "breathing_478" && <BreathingVisual phases={BREATHING_478_PHASES} totalCycles={4} isMuted={isMuted} />}
                 {sessionType === "box" && <BreathingVisual phases={BOX_PHASES} totalCycles={5} isMuted={isMuted} />}
                 {sessionType === "bodyscan" && <BodyScanVisual isMuted={isMuted} />}
-                {sessionType === "focus" && <FocusVisual onComplete={() => setFocusComplete(true)} />}
+                {sessionType === "focus" && <FocusVisual onComplete={() => setFocusComplete(true)} isMuted={isMuted} />}
                 {sessionType === "gratitude" && <GratitudeVisual isMuted={isMuted} />}
               </>
             )}

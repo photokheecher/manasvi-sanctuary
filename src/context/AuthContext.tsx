@@ -140,12 +140,12 @@ interface RegisteredUser {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize state synchronously to avoid cascading renders on client mount
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
-    if (typeof window === "undefined") return null;
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-    // Check if dummy users exist in localStorage, if not initialize them
-    const existingUsers = localStorage.getItem("manasvi_users");
-    if (!existingUsers) {
+  React.useEffect(() => {
+    // Populate mock users if they don't exist
+    if (!localStorage.getItem("manasvi_users")) {
       const dummyUsers: RegisteredUser[] = [
         { id: "user_rahul", name: "Rahul Sharma", email: "rahul@manasvi.edu", pass: "rahul123", exam: "JEE" },
         { id: "user_priya", name: "Priya Patel", email: "priya@manasvi.edu", pass: "priya123", exam: "NEET" },
@@ -161,10 +161,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const loggedIn = localStorage.getItem("manasvi_current_user");
-    return loggedIn ? JSON.parse(loggedIn) : null;
-  });
-
-  const isLoading = false;
+    if (loggedIn) {
+      setCurrentUser(JSON.parse(loggedIn));
+    }
+    setIsLoading(false);
+  }, []);
 
   const login = (email: string, pass: string): boolean => {
     const users: RegisteredUser[] = JSON.parse(localStorage.getItem("manasvi_users") || "[]");
