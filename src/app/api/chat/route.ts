@@ -1,4 +1,4 @@
-import { generateText, tool } from "ai";
+import { generateText, tool, isStepCount } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 import { buildMemoryContext } from "@/lib/memory";
@@ -13,7 +13,7 @@ export const maxDuration = 30; // max duration for edge/serverless
 export async function POST(req: Request) {
   try {
     const { messages, currentUser, logs }: { 
-      messages: any;
+      messages: { role: string; content: string }[];
       currentUser: { name?: string; exam?: string };
       logs: LogEntry[];
     } = await req.json();
@@ -40,12 +40,12 @@ Keep your final Response supportive, conversational, and concise. Occasionally u
     const result = await generateText({
       model: google(modelName),
       system: systemPrompt,
-      maxAutomaticRoundtrips: 3,
-      messages: messages.map((m: any) => ({ role: m.role === "model" ? "assistant" : m.role, content: m.content })),
+      stopWhen: isStepCount(3),
+      messages: messages.map((m: { role: string; content: string }) => ({ role: m.role === "model" ? "assistant" : m.role, content: m.content })),
       tools: {
         getUserData: tool({
           description: "Fetches the current user's profile and their historical mood and journal logs.",
-          parameters: z.object({}),
+          inputSchema: z.object({}),
           execute: async () => {
             return {
               name: currentUser?.name || "Student",
@@ -56,11 +56,11 @@ Keep your final Response supportive, conversational, and concise. Occasionally u
         }),
         suggestStrategy: tool({
           description: "Provides a structured coping strategy or mindfulness exercise for the user.",
-          parameters: z.object({
+          inputSchema: z.object({
             stressLevel: z.enum(["low", "medium", "high"]).describe("The perceived stress level of the user."),
             category: z.enum(["breathing", "grounding", "cognitive"]).describe("The type of strategy to suggest.")
           }),
-          execute: async ({ stressLevel, category }: { stressLevel: any; category: any }) => {
+          execute: async ({ category }: { stressLevel: "low" | "medium" | "high"; category: "breathing" | "grounding" | "cognitive" }) => {
             if (category === "breathing") return "Box Breathing: Inhale for 4s, hold for 4s, exhale for 4s, hold for 4s. Repeat 4 times.";
             if (category === "grounding") return "5-4-3-2-1 Technique: Acknowledge 5 things you see, 4 you can touch, 3 you hear, 2 you smell, 1 you taste.";
             return "Cognitive Reframing: Write down the negative thought, then write three objective facts that challenge it.";
