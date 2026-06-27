@@ -1,4 +1,4 @@
-import { streamText, tool, StreamingTextResponse } from "ai";
+import { generateText, tool } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 import { buildMemoryContext } from "@/lib/memory";
@@ -37,9 +37,10 @@ Keep your final Response supportive, conversational, and concise. Occasionally u
       modelName = `models/${modelName}`;
     }
 
-    const result = await streamText({
+    const result = await generateText({
       model: google(modelName),
       system: systemPrompt,
+      maxAutomaticRoundtrips: 3,
       messages: messages.map((m: any) => ({ role: m.role === "model" ? "assistant" : m.role, content: m.content })),
       tools: {
         getUserData: tool({
@@ -68,7 +69,7 @@ Keep your final Response supportive, conversational, and concise. Occasionally u
       }
     });
 
-    return new StreamingTextResponse(result.toAIStream());
+    return Response.json({ text: result.text });
   } catch (error) {
     console.error("Error generating chat response:", error);
     return new Response("Failed to generate chat response", { status: 500 });

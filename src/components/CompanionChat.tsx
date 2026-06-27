@@ -6,11 +6,9 @@ import { Send, User, Bot, Loader2, Sparkles } from "lucide-react";
 import type { LogEntry, UserProfile } from "@/types";
 
 interface Message {
-  role: "user" | "model";
+  role: "user" | "assistant";
   content: string;
 }
-
-import { useChat } from "ai/react";
 
 export default function CompanionChat({
   currentUser,
@@ -21,28 +19,58 @@ export default function CompanionChat({
 }) {
   const [isMounted, setIsMounted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    api: "/api/chat",
-    experimental_maxAutomaticRoundtrips: 3,
-    body: {
-      currentUser,
-      logs,
-    },
-    initialMessages: (() => {
-      if (typeof window !== "undefined") {
-        const stored = localStorage.getItem(`manasvi_chat_${currentUser.id}`);
-        if (stored) return JSON.parse(stored);
+  
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem(`manasvi_chat_${currentUser.id}`);
+      if (stored) return JSON.parse(stored);
+    }
+    return [
+      {
+        role: "assistant",
+        content: `Hi ${currentUser.name.split(" ")[0]}! I'm Manasvi. I'm here to listen and help you through your ${currentUser.exam} prep journey. How are you feeling right now?`
       }
-      return [
-        {
-          id: "welcome",
-          role: "assistant",
-          content: `Hi ${currentUser.name.split(" ")[0]}! I'm Manasvi. I'm here to listen and help you through your ${currentUser.exam} prep journey. How are you feeling right now?`
-        }
-      ];
-    })()
+    ];
   });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = { role: "user", content: input.trim() };
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: newMessages,
+          currentUser,
+          logs
+        })
+      });
+
+      if (!response.ok) throw new Error("Failed to fetch response");
+
+      const data = await response.json();
+      setMessages((prev) => [...prev, { role: "assistant", content: data.text || "Sorry, I could not generate a response." }]);
+    } catch (error) {
+      console.error(error);
+      setMessages((prev) => [...prev, { role: "assistant", content: "I'm sorry, I seem to be having trouble connecting right now. Can we try again in a moment?" }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -52,10 +80,10 @@ export default function CompanionChat({
 
   // Save to local storage
   useEffect(() => {
-    if (messages.length > 0) {
+    if (messages.length > 0 && isMounted) {
       localStorage.setItem(`manasvi_chat_${currentUser.id}`, JSON.stringify(messages));
     }
-  }, [messages, currentUser.id]);
+  }, [messages, currentUser.id, isMounted]);
 
   // Scroll to bottom
   useEffect(() => {
@@ -79,7 +107,7 @@ export default function CompanionChat({
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50">
-        {messages.map((msg: any, i: number) => (
+        {messages.map((msg, i) => (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -102,7 +130,7 @@ export default function CompanionChat({
                   : "bg-white text-slate-700 border border-slate-100 rounded-tl-none shadow-sm"
               }`}
             >
-              {msg.content.split("\n").map((line: string, j: number) => (
+              {msg.content.split("\n").map((line, j) => (
                 <p key={j} className={j > 0 ? "mt-2" : ""}>
                   {line}
                 </p>
@@ -110,6 +138,20 @@ export default function CompanionChat({
             </div>
           </motion.div>
         ))}
+        {isLoading && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex gap-3 flex-row"
+          >
+            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-white border border-teal-100 text-teal-500 shadow-sm">
+              <Bot className="w-4 h-4" />
+            </div>
+            <div className="rounded-2xl px-4 py-3 bg-white text-slate-700 border border-slate-100 rounded-tl-none shadow-sm flex items-center justify-center">
+              <Loader2 className="w-4 h-4 animate-spin text-teal-500" />
+            </div>
+          </motion.div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
