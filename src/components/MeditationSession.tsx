@@ -8,7 +8,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, CheckCircle, Wind, Heart, Focus, Sunrise, ChevronRight, Play, Pause } from "lucide-react";
+import { X, CheckCircle, Wind, Heart, Focus, Sunrise, ChevronRight, Play, Pause, Volume2, VolumeX } from "lucide-react";
 import { SESSIONS, type SessionType, type SessionDef } from "@/lib/sessions";
 
 // Re-export so page.tsx can still do: import { SESSIONS } from this file if needed
@@ -22,6 +22,25 @@ const SESSION_ICONS: Record<SessionType, React.FC<{ size?: number; className?: s
   focus: Focus as any,
   gratitude: Heart,
 };
+
+// ─── Speech Engine ────────────────────────────────────────────────────────────
+function speak(text: string, isMuted: boolean) {
+  if (isMuted || typeof window === "undefined" || !window.speechSynthesis) return;
+  try {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.82; // slightly slower, calmer pacing
+    utterance.pitch = 1.0;
+    const voices = window.speechSynthesis.getVoices();
+    const voice = voices.find(v => v.lang.startsWith("en") && v.name.toLowerCase().includes("natural")) ||
+                  voices.find(v => v.lang.startsWith("en")) ||
+                  voices[0];
+    if (voice) utterance.voice = voice;
+    window.speechSynthesis.speak(utterance);
+  } catch (e) {
+    console.error("SpeechSynthesis error:", e);
+  }
+}
 
 interface BreathingPhase {
   label: string;
@@ -83,10 +102,11 @@ export function getRecommendedSession(mood: number, emotions: string[]): Session
 
 // ─── Sub-renderers ───────────────────────────────────────────────────────────
 
-function BreathingVisual({ phases, totalCycles, session }: {
+function BreathingVisual({ phases, totalCycles, session, isMuted }: {
   phases: BreathingPhase[];
   totalCycles: number;
   session: SessionDef;
+  isMuted: boolean;
 }) {
   const [phaseIdx, setPhaseIdx] = useState(0);
   const [cycle, setCycle] = useState(1);
@@ -111,6 +131,14 @@ function BreathingVisual({ phases, totalCycles, session }: {
       return next;
     });
   }, [phases, totalCycles]);
+
+  useEffect(() => {
+    if (completed) {
+      speak("Breathing exercise complete. Well done.", isMuted);
+    } else {
+      speak(`${phase.label}. ${phase.instruction}`, isMuted);
+    }
+  }, [phaseIdx, cycle, completed, isMuted]);
 
   useEffect(() => {
     if (completed) return;
@@ -206,7 +234,7 @@ function BreathingVisual({ phases, totalCycles, session }: {
   );
 }
 
-function BodyScanVisual() {
+function BodyScanVisual({ isMuted }: { isMuted: boolean }) {
   const [elapsed, setElapsed] = useState(0);
   const [completed, setCompleted] = useState(false);
   const totalDuration = 300;
@@ -223,6 +251,14 @@ function BodyScanVisual() {
 
   const currentStep = [...BODY_SCAN_STEPS].reverse().find((s) => elapsed >= s.at) || BODY_SCAN_STEPS[0];
   const progress = elapsed / totalDuration;
+
+  useEffect(() => {
+    if (completed) {
+      speak("Body scan complete. Gently open your eyes whenever you are ready. You did amazing.", isMuted);
+    } else {
+      speak(currentStep.text, isMuted);
+    }
+  }, [currentStep.at, completed, isMuted]);
 
   return (
     <div className="flex flex-col items-center gap-8 w-full max-w-sm">
@@ -323,12 +359,20 @@ function FocusVisual({ onComplete }: { onComplete: () => void }) {
   );
 }
 
-function GratitudeVisual() {
+function GratitudeVisual({ isMuted }: { isMuted: boolean }) {
   const [promptIdx, setPromptIdx] = useState(0);
   const [responses, setResponses] = useState<string[]>([]);
   const [current, setCurrent] = useState("");
   const [completed, setCompleted] = useState(false);
   const [bloom, setBloom] = useState(false);
+
+  useEffect(() => {
+    if (completed) {
+      speak("Your gratitude cycle is complete. Shift back into study mode with a calm mind.", isMuted);
+    } else {
+      speak(GRATITUDE_PROMPTS[promptIdx], isMuted);
+    }
+  }, [promptIdx, completed, isMuted]);
 
   const handleSubmit = () => {
     if (!current.trim()) return;
@@ -424,6 +468,7 @@ export default function MeditationSession({
   const session = SESSIONS[sessionType];
   const [started, setStarted] = useState(false);
   const [focusComplete, setFocusComplete] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
   const bgGradient = `linear-gradient(135deg, ${session.gradient[0]} 0%, ${session.gradient[1]} 100%)`;
 
@@ -449,10 +494,16 @@ export default function MeditationSession({
           <p className="text-white/50 text-xs uppercase tracking-widest font-medium">{session.duration}</p>
           <h2 className="text-xl font-light text-white">{session.name}</h2>
         </div>
-        <motion.button whileTap={{ scale: 0.9 }} onClick={onClose}
-          className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:bg-white/20 hover:text-white transition-all">
-          <X size={20} />
-        </motion.button>
+        <div className="flex items-center gap-3">
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => setIsMuted(m => !m)}
+            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:bg-white/20 hover:text-white transition-all">
+            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          </motion.button>
+          <motion.button whileTap={{ scale: 0.9 }} onClick={onClose}
+            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:bg-white/20 hover:text-white transition-all">
+            <X size={20} />
+          </motion.button>
+        </div>
       </div>
 
       {/* Content */}
@@ -480,11 +531,11 @@ export default function MeditationSession({
         ) : (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             className="flex flex-col items-center gap-6 w-full">
-            {sessionType === "breathing_478" && <BreathingVisual phases={BREATHING_478_PHASES} totalCycles={4} session={session} />}
-            {sessionType === "box" && <BreathingVisual phases={BOX_PHASES} totalCycles={5} session={session} />}
-            {sessionType === "bodyscan" && <BodyScanVisual />}
+            {sessionType === "breathing_478" && <BreathingVisual phases={BREATHING_478_PHASES} totalCycles={4} session={session} isMuted={isMuted} />}
+            {sessionType === "box" && <BreathingVisual phases={BOX_PHASES} totalCycles={5} session={session} isMuted={isMuted} />}
+            {sessionType === "bodyscan" && <BodyScanVisual isMuted={isMuted} />}
             {sessionType === "focus" && <FocusVisual onComplete={() => setFocusComplete(true)} />}
-            {sessionType === "gratitude" && <GratitudeVisual />}
+            {sessionType === "gratitude" && <GratitudeVisual isMuted={isMuted} />}
           </motion.div>
         )}
       </div>
