@@ -41,7 +41,10 @@ Keep your final Response supportive, conversational, and concise. Occasionally u
       model: google(modelName),
       system: systemPrompt,
       stopWhen: isStepCount(3),
-      messages: messages.map((m: { role: string; content: string }) => ({ role: m.role === "model" ? "assistant" : m.role, content: m.content })),
+      messages: messages.map((m: { role: string; content: string }) => ({
+        role: (m.role === "model" ? "assistant" : m.role) as "user" | "assistant",
+        content: m.content,
+      })),
       tools: {
         getUserData: tool({
           description: "Fetches the current user's profile and their historical mood and journal logs.",
