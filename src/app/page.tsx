@@ -15,6 +15,9 @@ import MeditationSession from "@/components/MeditationSession";
 import { SESSIONS as MEDITATION_SESSIONS, getRecommendedSession, type SessionType } from "@/lib/sessions";
 import EmotionCompass from "@/components/EmotionCompass";
 import type { LogEntry, AIResponse, Strategy } from "@/types";
+import { useAuth } from "@/context/AuthContext";
+import AuthScreen from "@/components/AuthScreen";
+import { LogOut } from "lucide-react";
 
 // ─── Session icon mapping (client-side only) ───────────────────────────────────
 const SESSION_ICONS: Record<string, React.FC<{ size?: number; className?: string }>> = {
@@ -198,6 +201,8 @@ function HistoryCard({ entry, index }: { entry: LogEntry; index: number }) {
 type Tab = "checkin" | "meditate" | "insights" | "journey";
 
 export default function Home() {
+  const { currentUser, logout, isLoading } = useAuth();
+
   // ── Core state
   const [mood, setMood] = useState(3);
   const [tags, setTags] = useState<string[]>([]);
@@ -214,9 +219,12 @@ export default function Home() {
 
   // Load from localStorage
   useEffect(() => {
-    const stored = localStorage.getItem("manasvi_logs");
-    if (stored) setLogs(JSON.parse(stored));
-  }, []);
+    if (currentUser) {
+      const stored = localStorage.getItem(`manasvi_logs_${currentUser.id}`);
+      if (stored) setLogs(JSON.parse(stored));
+      else setLogs([]);
+    }
+  }, [currentUser]);
 
   // ── Derived data
   const streak = useMemo(() => calcStreak(logs), [logs]);
@@ -276,7 +284,9 @@ export default function Home() {
       };
       const updated = [...logs, newEntry];
       setLogs(updated);
-      localStorage.setItem("manasvi_logs", JSON.stringify(updated));
+      if (currentUser) {
+        localStorage.setItem(`manasvi_logs_${currentUser.id}`, JSON.stringify(updated));
+      }
 
       // Reset form
       setJournal("");
@@ -312,6 +322,19 @@ export default function Home() {
     { id: "journey" as Tab,  label: "Journey",    Icon: BookOpen  },
   ];
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f0f4f8]">
+        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+          className="w-10 h-10 border-4 border-teal-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return <AuthScreen />;
+  }
+
   return (
     <div className="min-h-screen bg-[#f0f4f8] text-[#1e293b] font-sans overflow-x-hidden relative selection:bg-teal-200">
 
@@ -335,8 +358,14 @@ export default function Home() {
       {/* Header */}
       <header className="sticky top-0 z-40 backdrop-blur-xl bg-white/60 border-b border-white/30 shadow-[0_4px_30px_rgba(0,0,0,0.04)]">
         <div className="flex justify-between items-center px-5 py-3 max-w-5xl mx-auto">
-          <div className="w-9 h-9 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shadow-sm border border-teal-200">
-            <User size={18} />
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shadow-sm border border-teal-200">
+              <User size={18} />
+            </div>
+            <div className="hidden sm:block text-left">
+              <p className="text-xs font-bold text-slate-800 leading-none">{currentUser.name}</p>
+              <p className="text-[10px] text-slate-400 mt-0.5 leading-none">Target: {currentUser.exam}</p>
+            </div>
           </div>
           <div className="flex flex-col items-center">
             <h1 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-700 to-cyan-600 tracking-tight leading-none">
@@ -344,13 +373,17 @@ export default function Home() {
             </h1>
             <p className="text-[10px] text-slate-400 font-medium tracking-wider">मन + अश्वि · Your Sanctuary</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {streak > 0 && (
               <div className="flex items-center gap-1 px-2.5 py-1 bg-orange-50 border border-orange-200 rounded-full">
                 <Flame size={12} className="text-orange-500" />
                 <span className="text-xs font-bold text-orange-600">{streak}d</span>
               </div>
             )}
+            <button onClick={logout} title="Log Out"
+              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-colors border border-slate-200/50">
+              <LogOut size={14} />
+            </button>
           </div>
         </div>
 

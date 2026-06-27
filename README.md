@@ -46,8 +46,9 @@ Features a custom animated overlay offering 5 distinct exercises based on mood a
 - **Frontend:** Built with Next.js (App Router), Tailwind CSS v4, and Recharts. The UI is designed with a "Serene Academic Core" glassmorphism aesthetic to visually lower cortisol levels.
 - **Backend/AI:** A Next.js API Route (`/api/journal`) securely communicates with the Gemini API using the `@google/genai` SDK and enforces strict structured output schemas.
 - **Guardrails:** Synchronous client-side crisis detection (checking 30+ keywords in English/Hindi/Hinglish) with immediate helpline overlays, prompt injection sanitization, rate limiting, and fallback schemas.
-- **State Management:** Logs and psychological matrices are persisted securely via browser `localStorage`.
-- **Testing:** Comprehensive test suite containing 70 unit and integration tests verifying crisis detection boundaries, sanitization, response schemas, and memory correctness.
+- **Authentication & Multi-User Support:** Built-in React Context auth system managing signup, login, session states, and logging out. Multi-user logs are completely isolated via user-specific namespace hashing (`manasvi_logs_${userId}`).
+- **Quick Evaluator Access:** Exposes pre-populated evaluation accounts (JEE, NEET, UPSC) loaded with 3-5 days of mock journal history, stress matrices, and trends to allow instant evaluation without signing up.
+- **Testing:** Comprehensive test suite containing 77 unit and integration tests verifying crisis detection boundaries, sanitization, response schemas, memory correctness, and auth credentials logic.
 
 ### Running Locally
 1. Clone the repository.

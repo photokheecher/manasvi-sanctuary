@@ -1,5 +1,12 @@
 // Shared types for Manasvi
 
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  exam: string;       // e.g. "JEE", "NEET", "UPSC"
+}
+
 export interface Strategy {
   type: string;   // 'coping' | 'music' | 'aroma' | 'food' | 'reading'
   icon: string;   // 'brain' | 'music' | 'wind' | 'coffee' | 'book'
