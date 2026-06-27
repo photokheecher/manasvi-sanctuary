@@ -19,6 +19,30 @@ Standard trackers often miss the nuances of emotional patterns because they rely
 ---
 
 ## 3. How the Solution Works
+
+### 🧠 3-Tier Personalization Memory
+Unlike standard AI companions that treat each check-in as isolated, Manasvi maintains a local memory context injected into every prompt:
+- **Short-Term Memory (STM):** The last 5 raw journal entries and emotions to preserve conversation/state continuity.
+- **Long-Term Memory (LTM):** Synthesized user patterns including average mood, top triggers, top emotions, and previously recommended strategies (to avoid repetitive suggestions).
+- **Episodic Memory:** Automatically stores significant breakthroughs, high points, low points, and crisis flag triggers to maintain contextual continuity over weeks.
+
+### 🧘 Interactive Meditation & Focus Sessions
+Features a custom animated overlay offering 5 distinct exercises based on mood and emotional analysis:
+- **4-7-8 Breathing (Anxiety/Panic):** Animated expanding orb regulating breath to lower high physiological arousal.
+- **Box Breathing (Stress/Frustration):** 4s box cycle with step indicators.
+- **Body Scan (Burnout/Exhaustion):** Timed relaxation prompts guided by a moving body highlight.
+- **25-Min Focus (Distraction/Study Backlogs):** A custom Pomodoro study timer with ambient particles to keep students focused.
+- **Gratitude Bloom (Self-doubt/Hopelessness):** A guided three-step positive-focus prompt that blooms visual feedback on completion.
+
+### 📊 Insights Dashboard & UI Components
+- **14-Day Mood Trend Line Chart:** Renders mood history with average mood reference lines and interactive tooltips.
+- **Emotion Compass:** A lookup library for 11 exam-related emotions (Anxiety, imposter syndrome, etc.), translating abstract feelings into plain-language psychological explanations, comfort notes, and micro-actions.
+- **Cognitive Bandwidth Meter:** Displays real-time working memory capacity freed during the current session.
+- **If-Then Blueprint:** Lists automated behavior triggers created specifically for the student's study blocks.
+
+---
+
+## 4. Technical Architecture
 - **Frontend:** Built with Next.js (App Router), Tailwind CSS v4, and Recharts. The UI is designed with a "Serene Academic Core" glassmorphism aesthetic to visually lower cortisol levels.
 - **Backend/AI:** A Next.js API Route (`/api/journal`) securely communicates with the Gemini API using the `@google/genai` SDK and enforces strict structured output schemas.
 - **Guardrails:** Synchronous client-side crisis detection (checking 30+ keywords in English/Hindi/Hinglish) with immediate helpline overlays, prompt injection sanitization, rate limiting, and fallback schemas.
@@ -40,7 +64,7 @@ Standard trackers often miss the nuances of emotional patterns because they rely
 
 ---
 
-## 4. Assumptions Made
+## 5. Assumptions Made
 - **API Availability:** It is assumed that the user has a valid Google Gemini API key to process the journal entries.
 - **Local Storage Scope:** For the purpose of this MVP, it is assumed that persisting user data in `localStorage` provides sufficient privacy and performance. A production application would migrate to a secure, encrypted database with user authentication.
 - **Target Audience:** The application assumes the user is a student in the Indian education ecosystem (e.g., JEE, NEET), meaning the AI is prompted to provide culturally and contextually relevant advice (though it adapts to any input).
